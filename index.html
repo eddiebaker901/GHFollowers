@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub User Search</title>
+    <style>
+        body {
+            color:darkblue;
+            font-family: Arial, Helvetica, sans-serif;
+            font-weight: 500;
+        }
+        div {
+            color:black;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        .user-info, .followers-list { 
+            margin: 20px; 
+        }
+        .follower-avatar { 
+            width: 50px; 
+            height: 50px; 
+            border-radius: 50%;
+        }
+        .follower { 
+            display: inline-block; 
+            margin: 5px; 
+        }
+    </style>
+</head>
+<body>
+    <h1>GitHub User Search</h1>
+    <input type="text" id="username" placeholder="Enter GitHub username">
+    <button onclick="searchUser()">Search</button>
+
+    <div id="user-info" class="user-info"></div>
+    <div id="followers-list" class="followers-list"></div>
+    <button id="load-more" style="display:none;" onclick="loadMoreFollowers()">Load More</button>
+
+    <script>
+        let currentPage = 1;
+        let hasMoreFollowers = true;
+
+        function searchUser() {
+
+            const username = document.getElementById('username').value;
+
+            fetch(`github_api.php?user=${username}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+
+                        document.getElementById('user-info').innerHTML = data.error;
+                        document.getElementById('followers-list').innerHTML = '';
+                        document.getElementById('load-more').style.display = 'none';
+
+                    } else {
+
+                        displayUserInfo(data);
+                        currentPage = 1; // Reset pagination
+                        hasMoreFollowers = true;
+                        fetchFollowers();
+                    }
+                });
+        }
+
+        function displayUserInfo(data) {
+
+            document.getElementById('user-info').innerHTML = `
+                <h2>${data.login}</h2>
+                <p>Number of followers: ${data.followers}</p>
+                <p>Followers: </p>
+            `;
+        }
+
+        function fetchFollowers() {
+
+            if (!hasMoreFollowers) return;
+
+            fetch(`github_api.php?action=getFollowers&user=${document.getElementById('username').value}&page=${currentPage}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+
+                        // In case previously searched user has followers and newly searched user does not.
+                        if (data.length == 0) {
+                            document.getElementById('followers-list').innerHTML = '';
+                        }
+
+                        displayFollowers(data);
+
+                        if (data.length < 30) {
+
+                            hasMoreFollowers = false;
+                            document.getElementById('load-more').style.display = 'none';
+
+                        } else {
+                            document.getElementById('load-more').style.display = 'block';
+                        }
+
+                    } else {
+                        document.getElementById('load-more').style.display = 'none';
+                    }
+                });
+        }
+
+        function displayFollowers(followers) {
+
+            const followersList = document.getElementById('followers-list');
+
+            followersList.innerHTML += followers.map(f => `
+                <div class="follower">
+                    <a href="${f.html_url}" target='_blank'>
+                        <img src="${f.avatar_url}" alt="${f.login}" class="follower-avatar" title="${f.login}">
+                    </a>
+                </div>
+            `).join('');
+        }
+
+        function loadMoreFollowers() {
+            currentPage++;
+            fetchFollowers();
+        }
+    </script>
+</body>
+</html>
