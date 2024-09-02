@@ -44,6 +44,8 @@
         function searchUser() {
 
             const username = document.getElementById('username').value;
+            document.getElementById('user-info').innerHTML = '';
+            document.getElementById('followers-list').innerHTML = '';
 
             fetch(`github_api.php?user=${username}`)
                 .then(response => response.json())
@@ -51,7 +53,6 @@
                     if (data.error) {
 
                         document.getElementById('user-info').innerHTML = data.error;
-                        document.getElementById('followers-list').innerHTML = '';
                         document.getElementById('load-more').style.display = 'none';
 
                     } else {
